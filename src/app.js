@@ -13,6 +13,7 @@ const announcementRoutes = require('./routes/announcementRoutes');
 const analyticsRoutes = require('./routes/analyticsRoutes');
 const searchRoutes = require('./routes/searchRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
 
 const app = express();
 
@@ -39,6 +40,7 @@ app.use('/api/announcements', announcementRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Root route
 app.get('/', (req, res) => {

@@ -261,6 +261,46 @@ const featureProject = async (req, res) => {
   }
 };
 
+// @desc    Update a project
+// @route   PUT /api/projects/:id
+// @access  Private (Author)
+const updateProject = async (req, res) => {
+  const { title, description, category, department, stage, targetArea, githubLink, liveDemo, supportNeeded } = req.body;
+
+  try {
+    const project = await Project.findById(req.params.id);
+    if (!project) {
+      return res.status(404).json({ message: 'Project not found' });
+    }
+
+    // Check authorization: only the creator can edit
+    const authorId = project.author._id || project.author.id || project.author;
+    const userId = req.user._id || req.user.id;
+    if (authorId.toString() !== userId.toString()) {
+      return res.status(403).json({ message: 'Not authorized to edit this project' });
+    }
+
+    const updates = {
+      title: title !== undefined ? title : project.title,
+      description: description !== undefined ? description : project.description,
+      category: category !== undefined ? category : project.category,
+      department: department !== undefined ? department : project.department,
+      stage: stage !== undefined ? stage : project.stage,
+      targetArea: targetArea !== undefined ? targetArea : project.targetArea,
+      githubLink: githubLink !== undefined ? githubLink : project.githubLink,
+      liveDemo: liveDemo !== undefined ? liveDemo : project.liveDemo,
+      supportNeeded: supportNeeded !== undefined ? supportNeeded : project.supportNeeded,
+    };
+
+    const updatedProject = await Project.findByIdAndUpdate(req.params.id, updates);
+
+    return res.json(updatedProject);
+  } catch (err) {
+    console.error('Error updating project:', err);
+    return res.status(500).json({ message: 'Server error updating project' });
+  }
+};
+
 module.exports = {
   getProjects,
   getProjectById,
@@ -268,5 +308,6 @@ module.exports = {
   endorseProject,
   recommendProject,
   markProjectReady,
-  featureProject
+  featureProject,
+  updateProject
 };

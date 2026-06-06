@@ -25,8 +25,25 @@ const Notification = {
     return memoryDB.findByIdAndUpdate('notifications', id, data);
   },
   create: async (data) => {
-    if (db.isConnected()) return NotificationModel.create(data);
-    return memoryDB.create('notifications', data);
+    let created;
+    if (db.isConnected()) {
+      created = await NotificationModel.create(data);
+    } else {
+      created = await memoryDB.create('notifications', data);
+    }
+
+    try {
+      if (global.io) {
+        const userId = (data.user && (data.user._id || data.user.id || data.user)) || '';
+        if (userId) {
+          global.io.to(userId.toString()).emit('new_notification', created);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to emit socket notification:', err.message);
+    }
+
+    return created;
   },
   schema: NotificationSchema,
   model: NotificationModel
