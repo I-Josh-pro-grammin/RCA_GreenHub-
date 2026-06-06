@@ -164,12 +164,12 @@ const updateProfile = async (req, res) => {
     const userResponse = {
       _id: updatedUser._id || updatedUser.id,
       id: updatedUser._id || updatedUser.id,
-      name: name || user.name,
-      email: email || user.email,
-      role: user.role,
-      avatar: name ? generateAvatar(name) : user.avatar,
-      gipPoints: user.gipPoints,
-      profileCompleteness: 100
+      name: updatedUser.name,
+      email: updatedUser.email,
+      role: updatedUser.role,
+      avatar: updatedUser.avatar,
+      gipPoints: updatedUser.gipPoints,
+      profileCompleteness: updatedUser.profileCompleteness
     };
 
     return res.json(userResponse);

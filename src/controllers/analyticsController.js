@@ -98,16 +98,31 @@ const getPortalAnalytics = async (req, res) => {
     const stats = [];
 
     if (role === 'Student') {
-      const myProjects = projects.filter(p => (p.author._id || p.author.id || p.author) === userId);
-      const myRequests = supportRequests.filter(s => (s.requester._id || s.requester.id || s.requester) === userId);
+      const myProjects = projects.filter(p => {
+        const authorId = p.author?._id || p.author?.id || p.author;
+        return authorId && authorId.toString() === userId.toString();
+      });
+      const myRequests = supportRequests.filter(s => {
+        const reqId = s.requester?._id || s.requester?.id || s.requester;
+        return reqId && reqId.toString() === userId.toString();
+      });
+      const getRank = (points) => {
+        if (points >= 500) return 'Gold 🥇';
+        if (points >= 150) return 'Silver 🥈';
+        return 'Bronze 🥉';
+      };
+
       stats.push(
         { label: 'My Projects', value: myProjects.length },
         { label: 'Support Requests', value: myRequests.length },
-        { label: 'Rank', value: 'Silver 🥈' }
+        { label: 'Rank', value: getRank(req.user.gipPoints || 0) }
       );
     } else if (role === 'Teacher') {
       const pendingReviews = projects.filter(p => p.status === 'Pending');
-      const endorsedByMe = projects.filter(p => p.isEndorsed && (p.endorsedBy?._id || p.endorsedBy?.id || p.endorsedBy) === userId);
+      const endorsedByMe = projects.filter(p => {
+        const endId = p.endorsedBy?._id || p.endorsedBy?.id || p.endorsedBy;
+        return p.isEndorsed && endId && endId.toString() === userId.toString();
+      });
       stats.push(
         { label: 'Pending Reviews', value: pendingReviews.length },
         { label: 'Endorsed Projects', value: endorsedByMe.length }
