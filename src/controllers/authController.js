@@ -136,8 +136,52 @@ const getMe = async (req, res) => {
   }
 };
 
+const updateProfile = async (req, res) => {
+  const { name, email, password } = req.body;
+  try {
+    const userId = req.user._id || req.user.id;
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const updates = {};
+    if (name) {
+      updates.name = name;
+      updates.avatar = generateAvatar(name);
+    }
+    if (email) {
+      updates.email = email;
+    }
+    if (password) {
+      const salt = await bcrypt.genSalt(10);
+      updates.password = await bcrypt.hash(password, salt);
+    }
+    updates.profileCompleteness = 100;
+
+    const updatedUser = await User.findByIdAndUpdate(userId, updates);
+
+    const userResponse = {
+      _id: updatedUser._id || updatedUser.id,
+      id: updatedUser._id || updatedUser.id,
+      name: name || user.name,
+      email: email || user.email,
+      role: user.role,
+      avatar: name ? generateAvatar(name) : user.avatar,
+      gipPoints: user.gipPoints,
+      profileCompleteness: 100
+    };
+
+    return res.json(userResponse);
+  } catch (err) {
+    console.error('Update profile error:', err);
+    return res.status(500).json({ message: 'Server error updating profile' });
+  }
+};
+
 module.exports = {
   register,
   login,
-  getMe
+  getMe,
+  updateProfile
 };
