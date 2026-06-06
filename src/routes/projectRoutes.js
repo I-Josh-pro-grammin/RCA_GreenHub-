@@ -8,7 +8,8 @@ const {
   recommendProject,
   markProjectReady,
   featureProject,
-  updateProject
+  updateProject,
+  deleteProject
 } = require('../controllers/projectController');
 const protect = require('../middleware/authMiddleware');
 
@@ -16,6 +17,7 @@ router.get('/', getProjects);
 router.get('/:id', getProjectById);
 router.post('/', protect, createProject);
 router.put('/:id', protect, updateProject);
+router.delete('/:id', protect, deleteProject);
 router.post('/:id/endorse', protect, endorseProject);
 router.post('/:id/recommend', protect, recommendProject);
 router.post('/:id/ready', protect, markProjectReady);

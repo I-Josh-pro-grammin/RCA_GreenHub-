@@ -280,6 +280,30 @@ const updateProject = async (req, res) => {
       return res.status(403).json({ message: 'Not authorized to edit this project' });
     }
 
+    let points = project.points;
+    if (category && category !== project.category) {
+      const oldBase = BASE_POINTS[project.category] || 25;
+      const newBase = BASE_POINTS[category] || 25;
+      const diff = newBase - oldBase;
+      points = Math.max(0, (project.points || 0) + diff);
+      
+      // Update User total GIP points
+      const User = require('../models/User');
+      const authorUser = await User.findById(authorId);
+      if (authorUser) {
+        const newUserPoints = Math.max(0, (authorUser.gipPoints || 0) + diff);
+        await User.findByIdAndUpdate(authorId, { gipPoints: newUserPoints });
+      }
+
+      // Generate a notification about GIP update
+      const sign = diff >= 0 ? '+' : '';
+      await sendNotification(
+        authorId,
+        'Points Adjusted',
+        `Your project "${title || project.title}" category was updated. GIP adjusted by ${sign}${diff} points.`
+      );
+    }
+
     const updates = {
       title: title !== undefined ? title : project.title,
       description: description !== undefined ? description : project.description,
@@ -290,6 +314,7 @@ const updateProject = async (req, res) => {
       githubLink: githubLink !== undefined ? githubLink : project.githubLink,
       liveDemo: liveDemo !== undefined ? liveDemo : project.liveDemo,
       supportNeeded: supportNeeded !== undefined ? supportNeeded : project.supportNeeded,
+      points: points
     };
 
     const updatedProject = await Project.findByIdAndUpdate(req.params.id, updates);
@@ -301,6 +326,84 @@ const updateProject = async (req, res) => {
   }
 };
 
+// @desc    Delete a project
+// @route   DELETE /api/projects/:id
+// @access  Private (Author)
+const deleteProject = async (req, res) => {
+  try {
+    const project = await Project.findById(req.params.id);
+    if (!project) {
+      return res.status(404).json({ message: 'Project not found' });
+    }
+
+    // Check authorization: only the creator can delete
+    const authorId = project.author._id || project.author.id || project.author;
+    const userId = req.user._id || req.user.id;
+    if (authorId.toString() !== userId.toString()) {
+      return res.status(403).json({ message: 'Not authorized to delete this project' });
+    }
+
+    // 1. Deduct project points from user's GIP points
+    const User = require('../models/User');
+    const user = await User.findById(authorId);
+    if (user) {
+      const newGip = Math.max(0, (user.gipPoints || 0) - (project.points || 0));
+      await User.findByIdAndUpdate(authorId, { gipPoints: newGip });
+    }
+
+    // 2. Clean up associated support requests
+    const db = require('../models/db');
+    const memoryDB = require('../models/memoryDB');
+    if (db.isConnected()) {
+      const SupportRequest = require('../models/SupportRequest');
+      await SupportRequest.model.deleteMany({ project: project._id });
+    } else {
+      const supportList = memoryDB.getRawCollection('supportRequests');
+      for (let i = supportList.length - 1; i >= 0; i--) {
+        const pId = supportList[i].project?._id || supportList[i].project?.id || supportList[i].project;
+        if (pId && pId.toString() === req.params.id.toString()) {
+          supportList.splice(i, 1);
+        }
+      }
+    }
+
+    // 3. Clean up associated budget requests
+    if (db.isConnected()) {
+      const BudgetRequest = require('../models/BudgetRequest');
+      await BudgetRequest.model.deleteMany({ project: project._id });
+    } else {
+      const budgetList = memoryDB.getRawCollection('budgetRequests');
+      for (let i = budgetList.length - 1; i >= 0; i--) {
+        const pId = budgetList[i].project?._id || budgetList[i].project?.id || budgetList[i].project;
+        if (pId && pId.toString() === req.params.id.toString()) {
+          budgetList.splice(i, 1);
+        }
+      }
+    }
+
+    // 4. Delete the project itself
+    if (db.isConnected()) {
+      const mongoose = require('mongoose');
+      const ProjectModel = mongoose.models.Project || mongoose.model('Project');
+      await ProjectModel.findByIdAndDelete(req.params.id);
+    } else {
+      await memoryDB.deleteOne('projects', req.params.id);
+    }
+
+    // Emit socket or save notification
+    await sendNotification(
+      userId,
+      'Project Deleted',
+      `Your project "${project.title}" has been deleted. -${project.points || 0} GIP points were deducted.`
+    );
+
+    return res.json({ message: 'Project deleted successfully' });
+  } catch (err) {
+    console.error('Error deleting project:', err);
+    return res.status(500).json({ message: 'Server error deleting project' });
+  }
+};
+
 module.exports = {
   getProjects,
   getProjectById,
@@ -309,5 +412,6 @@ module.exports = {
   recommendProject,
   markProjectReady,
   featureProject,
-  updateProject
+  updateProject,
+  deleteProject
 };
