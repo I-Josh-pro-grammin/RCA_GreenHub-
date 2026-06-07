@@ -169,7 +169,39 @@ const getPortalAnalytics = async (req, res) => {
       );
     }
 
-    return res.json({ stats });
+    // Fetch all students to build GIP leaderboard
+    let students = [];
+    if (db.isConnected()) {
+      students = await User.find({ role: 'Student' });
+    } else {
+      const allUsers = memoryDB.getRawCollection('users');
+      students = allUsers.filter(u => u.role === 'Student');
+    }
+
+    const mockStudents = [
+      { userId: 'mock-keza', name: 'Keza Alice', points: 190 },
+      { userId: 'mock-kevin', name: 'Mugisha Kevin', points: 185 },
+      { userId: 'mock-uwera', name: 'Uwera Marie', points: 150 }
+    ];
+
+    let studentList = students.map(s => ({
+      userId: s._id || s.id,
+      name: s.name,
+      points: s.gipPoints || 0
+    }));
+
+    for (const mock of mockStudents) {
+      if (studentList.length >= 3) break;
+      const exists = studentList.some(s => s.name.toLowerCase() === mock.name.toLowerCase());
+      if (!exists) {
+        studentList.push(mock);
+      }
+    }
+
+    studentList.sort((a, b) => b.points - a.points);
+    const leaderboard = studentList.slice(0, 3);
+
+    return res.json({ stats, leaderboard });
   } catch (err) {
     console.error('Error fetching portal stats:', err);
     return res.status(500).json({ message: 'Server error computing dashboard metrics' });
