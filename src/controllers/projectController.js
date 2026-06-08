@@ -446,6 +446,10 @@ const addComment = async (req, res) => {
         return res.status(404).json({ message: 'Project not found' });
       }
 
+      if (project.author.toString() === (req.user._id || req.user.id).toString()) {
+        return res.status(400).json({ message: 'You cannot comment on your own project' });
+      }
+
       project.comments.push({
         user: req.user._id || req.user.id,
         content: content.trim()
@@ -478,6 +482,10 @@ const addComment = async (req, res) => {
       const project = await memoryDB.findById('projects', req.params.id);
       if (!project) {
         return res.status(404).json({ message: 'Project not found' });
+      }
+
+      if ((project.author?._id || project.author?.id || project.author).toString() === (req.user._id || req.user.id).toString()) {
+        return res.status(400).json({ message: 'You cannot comment on your own project' });
       }
 
       const currentUser = await User.findById(req.user._id || req.user.id);
