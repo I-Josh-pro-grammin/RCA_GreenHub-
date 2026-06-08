@@ -8,12 +8,13 @@ const Notification = require('../models/Notification');
 // @route   GET /api/support
 // @access  Private
 const getSupportRequests = async (req, res) => {
-  const { department, status, requester } = req.query;
+  const { department, status, requester, project } = req.query;
   const filter = {};
 
   if (department) filter.department = department;
   if (status) filter.status = status;
   if (requester) filter.requester = requester;
+  if (project) filter.project = project;
 
   try {
     const requests = await SupportRequest.find(filter);

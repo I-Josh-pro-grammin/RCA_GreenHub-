@@ -180,6 +180,12 @@ const matches = (item, query) => {
       // support $in operator
       if (!val.$in.includes(item[key])) return false;
     } else {
+      if (item[key] && typeof item[key] === 'object' && !Array.isArray(item[key])) {
+        const idVal = item[key]._id || item[key].id;
+        if (idVal && idVal.toString() === val.toString()) {
+          continue;
+        }
+      }
       if (item[key] !== val) return false;
     }
   }
