@@ -404,6 +404,129 @@ const deleteProject = async (req, res) => {
   }
 };
 
+// @desc    Add a comment to a project
+// @route   POST /api/projects/:id/comments
+// @access  Private
+const addComment = async (req, res) => {
+  const { content } = req.body;
+  if (!content || !content.trim()) {
+    return res.status(400).json({ message: 'Comment content is required' });
+  }
+
+  try {
+    const db = require('../models/db');
+    const memoryDB = require('../models/memoryDB');
+    const User = require('../models/User');
+
+    if (db.isConnected()) {
+      const mongoose = require('mongoose');
+      const ProjectModel = mongoose.models.Project || mongoose.model('Project');
+      const project = await ProjectModel.findById(req.params.id);
+      if (!project) {
+        return res.status(404).json({ message: 'Project not found' });
+      }
+
+      project.comments.push({
+        user: req.user._id || req.user.id,
+        content: content.trim()
+      });
+
+      await project.save();
+
+      // Notify the project author (if the commenter is not the author)
+      const authorId = project.author;
+      const commenterId = req.user._id || req.user.id;
+      const commenterName = req.user.name || 'A user';
+      if (authorId && authorId.toString() !== commenterId.toString()) {
+        await sendNotification(
+          authorId,
+          'New Comment',
+          `"${commenterName}" commented on your project "${project.title}".`
+        );
+      }
+
+      // Retrieve full project with populated comments
+      const updatedProject = await ProjectModel.findById(req.params.id)
+        .populate('author')
+        .populate('endorsedBy')
+        .populate('assignedMembers')
+        .populate('comments.user');
+
+      return res.json(updatedProject);
+    } else {
+      // memoryDB mode
+      const project = await memoryDB.findById('projects', req.params.id);
+      if (!project) {
+        return res.status(404).json({ message: 'Project not found' });
+      }
+
+      const currentUser = await User.findById(req.user._id || req.user.id);
+
+      if (!project.comments) {
+        project.comments = [];
+      }
+
+      project.comments.push({
+        _id: Math.random().toString(36).substring(2, 9) + Date.now().toString(36),
+        user: currentUser, // In memory mode, we store populated user details directly
+        content: content.trim(),
+        createdAt: new Date()
+      });
+
+      const updatedProject = await memoryDB.findByIdAndUpdate('projects', req.params.id, {
+        comments: project.comments
+      });
+
+      // Notify the project author (if the commenter is not the author)
+      const authorId = project.author?._id || project.author?.id || project.author;
+      const commenterId = req.user._id || req.user.id;
+      const commenterName = req.user.name || 'A user';
+      if (authorId && authorId.toString() !== commenterId.toString()) {
+        await sendNotification(
+          authorId,
+          'New Comment',
+          `"${commenterName}" commented on your project "${project.title}".`
+        );
+      }
+
+      return res.json(updatedProject);
+    }
+  } catch (err) {
+    console.error('Error adding comment:', err);
+    return res.status(500).json({ message: 'Server error adding comment' });
+  }
+};
+
+// @desc    Give support to a project (by another student or teacher)
+// @route   POST /api/projects/:id/support
+// @access  Private
+const supportProject = async (req, res) => {
+  const { message } = req.body;
+  const supporterName = req.user.name || 'A user';
+  const supporterRole = req.user.role;
+
+  try {
+    const project = await Project.findById(req.params.id);
+    if (!project) {
+      return res.status(404).json({ message: 'Project not found' });
+    }
+
+    const authorId = project.author?._id || project.author?.id || project.author;
+
+    // Send a notification to the author
+    await sendNotification(
+      authorId,
+      'Support Offered',
+      `"${supporterName}" (${supporterRole}) offered support for your project "${project.title}": "${message || 'I would like to support your project!'}"`
+    );
+
+    return res.json({ message: 'Support offered successfully' });
+  } catch (err) {
+    console.error('Error offering project support:', err);
+    return res.status(500).json({ message: 'Server error offering support' });
+  }
+};
+
 module.exports = {
   getProjects,
   getProjectById,
@@ -413,5 +536,7 @@ module.exports = {
   markProjectReady,
   featureProject,
   updateProject,
-  deleteProject
+  deleteProject,
+  addComment,
+  supportProject
 };
