@@ -132,6 +132,16 @@ const endorseProject = async (req, res) => {
       `Your project "${project.title}" has been endorsed by ${req.user.name}! Earned +${endorsementGip} GIP.`
     );
 
+    // Award +20 GIP to the teacher
+    await awardPoints(req.user._id || req.user.id, project._id || project.id, 20, `Endorsed project: ${project.title}`);
+
+    // Notify the teacher
+    await sendNotification(
+      req.user._id || req.user.id,
+      'Points Earned! 🏆',
+      `You earned +20 GIP for endorsing the project "${project.title}".`
+    );
+
     return res.json(updated);
   } catch (err) {
     console.error('Error endorsing project:', err);
@@ -182,6 +192,16 @@ const recommendProject = async (req, res) => {
       authorId,
       'Project Recommended',
       `Your project "${project.title}" was ${reason.toLowerCase()}. Earned +${gipAward} GIP.`
+    );
+
+    // Award +15 GIP to the teacher/head
+    await awardPoints(req.user._id || req.user.id, project._id || project.id, 15, `Recommended project "${project.title}" for ${type}`);
+
+    // Notify the recommender
+    await sendNotification(
+      req.user._id || req.user.id,
+      'Points Earned! 🏆',
+      `You earned +15 GIP for recommending "${project.title}" for ${type === 'support' ? 'Department Support' : 'Investor Discovery'}.`
     );
 
     return res.json(updated);
@@ -504,6 +524,7 @@ const supportProject = async (req, res) => {
   const { message } = req.body;
   const supporterName = req.user.name || 'A user';
   const supporterRole = req.user.role;
+  const userId = req.user._id || req.user.id;
 
   try {
     const project = await Project.findById(req.params.id);
@@ -512,18 +533,146 @@ const supportProject = async (req, res) => {
     }
 
     const authorId = project.author?._id || project.author?.id || project.author;
+    const db = require('../models/db');
+    const memoryDB = require('../models/memoryDB');
 
-    // Send a notification to the author
+    const supportMsg = message || 'I would like to support your project!';
+    const newSupportItem = {
+      user: userId,
+      message: supportMsg,
+      createdAt: new Date()
+    };
+
+    let updatedProject;
+    if (db.isConnected()) {
+      const ProjectModel = require('../models/Project').model;
+      updatedProject = await ProjectModel.findByIdAndUpdate(
+        req.params.id,
+        { $push: { supports: newSupportItem } },
+        { new: true }
+      ).populate('author').populate('endorsedBy').populate('assignedMembers').populate('comments.user').populate('supports.user').populate('sponsorships.user');
+    } else {
+      const User = require('../models/User');
+      const userObj = await User.findById(userId);
+      const memorySupportItem = {
+        _id: Math.random().toString(36).substring(2, 9) + Date.now().toString(36),
+        user: userObj || { name: supporterName, role: supporterRole },
+        message: supportMsg,
+        createdAt: new Date()
+      };
+      
+      const rawProjects = memoryDB.getRawCollection('projects');
+      const idx = rawProjects.findIndex(p => p._id === req.params.id || p.id === req.params.id);
+      if (idx !== -1) {
+        if (!rawProjects[idx].supports) rawProjects[idx].supports = [];
+        rawProjects[idx].supports.push(memorySupportItem);
+        updatedProject = JSON.parse(JSON.stringify(rawProjects[idx]));
+      } else {
+        updatedProject = project;
+      }
+    }
+
+    // Award +15 GIP to supporter, +10 GIP to project author
+    await awardPoints(userId, project._id || project.id, 15, `Offered support to project: ${project.title}`);
+    await awardPoints(authorId, project._id || project.id, 10, `Received support offer from ${supporterName}`);
+
+    // Send notifications
+    await sendNotification(
+      userId,
+      'Points Earned! 🏆',
+      `You earned +15 GIP for offering support to "${project.title}".`
+    );
     await sendNotification(
       authorId,
-      'Support Offered',
-      `"${supporterName}" (${supporterRole}) offered support for your project "${project.title}": "${message || 'I would like to support your project!'}"`
+      'Support Offered 🤝',
+      `"${supporterName}" (${supporterRole}) offered support for your project "${project.title}": "${supportMsg}". Earned +10 GIP.`
     );
 
-    return res.json({ message: 'Support offered successfully' });
+    return res.json(updatedProject);
   } catch (err) {
     console.error('Error offering project support:', err);
     return res.status(500).json({ message: 'Server error offering support' });
+  }
+};
+
+// @desc    Sponsor a project (by an investor or partner)
+// @route   POST /api/projects/:id/sponsor
+// @access  Private
+const sponsorProject = async (req, res) => {
+  const { message, amount } = req.body;
+  const sponsorName = req.user.name || 'A sponsor';
+  const sponsorRole = req.user.role;
+  const userId = req.user._id || req.user.id;
+
+  try {
+    const project = await Project.findById(req.params.id);
+    if (!project) {
+      return res.status(404).json({ message: 'Project not found' });
+    }
+
+    const authorId = project.author?._id || project.author?.id || project.author;
+    const db = require('../models/db');
+    const memoryDB = require('../models/memoryDB');
+
+    const sponsorMsg = message || 'I would like to sponsor your project!';
+    const sponsorAmount = Number(amount) || 0;
+    const newSponsorItem = {
+      user: userId,
+      message: sponsorMsg,
+      amount: sponsorAmount,
+      createdAt: new Date()
+    };
+
+    let updatedProject;
+    if (db.isConnected()) {
+      const ProjectModel = require('../models/Project').model;
+      updatedProject = await ProjectModel.findByIdAndUpdate(
+        req.params.id,
+        { $push: { sponsorships: newSponsorItem } },
+        { new: true }
+      ).populate('author').populate('endorsedBy').populate('assignedMembers').populate('comments.user').populate('supports.user').populate('sponsorships.user');
+    } else {
+      const User = require('../models/User');
+      const userObj = await User.findById(userId);
+      const memorySponsorItem = {
+        _id: Math.random().toString(36).substring(2, 9) + Date.now().toString(36),
+        user: userObj || { name: sponsorName, role: sponsorRole },
+        message: sponsorMsg,
+        amount: sponsorAmount,
+        createdAt: new Date()
+      };
+      
+      const rawProjects = memoryDB.getRawCollection('projects');
+      const idx = rawProjects.findIndex(p => p._id === req.params.id || p.id === req.params.id);
+      if (idx !== -1) {
+        if (!rawProjects[idx].sponsorships) rawProjects[idx].sponsorships = [];
+        rawProjects[idx].sponsorships.push(memorySponsorItem);
+        updatedProject = JSON.parse(JSON.stringify(rawProjects[idx]));
+      } else {
+        updatedProject = project;
+      }
+    }
+
+    // Award +30 GIP to sponsor, +50 GIP to project author
+    await awardPoints(userId, project._id || project.id, 30, `Sponsored project: ${project.title}`);
+    await awardPoints(authorId, project._id || project.id, 50, `Received sponsorship from ${sponsorName}`);
+
+    // Send notifications
+    await sendNotification(
+      userId,
+      'Points Earned! 🏆',
+      `You earned +30 GIP for sponsoring the project "${project.title}".`
+    );
+    await sendNotification(
+      authorId,
+      'Project Sponsored! 💵',
+      `"${sponsorName}" (${sponsorRole}) sponsored your project "${project.title}"${sponsorAmount > 0 ? ` with RWF ${sponsorAmount}` : ''}: "${sponsorMsg}". Earned +50 GIP.`
+    );
+
+    return res.json(updatedProject);
+  } catch (err) {
+    console.error('Error sponsoring project:', err);
+    return res.status(500).json({ message: 'Server error sponsoring project' });
   }
 };
 
@@ -538,5 +687,6 @@ module.exports = {
   updateProject,
   deleteProject,
   addComment,
-  supportProject
+  supportProject,
+  sponsorProject
 };

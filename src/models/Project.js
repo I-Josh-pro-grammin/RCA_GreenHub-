@@ -25,6 +25,17 @@ const ProjectSchema = new mongoose.Schema({
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     content: { type: String, required: true },
     createdAt: { type: Date, default: Date.now }
+  }],
+  supports: [{
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    message: { type: String, required: true },
+    createdAt: { type: Date, default: Date.now }
+  }],
+  sponsorships: [{
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    message: { type: String, required: true },
+    amount: { type: Number, default: 0 },
+    createdAt: { type: Date, default: Date.now }
   }]
 }, { timestamps: true });
 
@@ -32,26 +43,26 @@ const ProjectModel = mongoose.models.Project || mongoose.model('Project', Projec
 
 const Project = {
   find: async (query) => {
-    if (db.isConnected()) return ProjectModel.find(query).populate('author').populate('endorsedBy').populate('assignedMembers').populate('comments.user');
+    if (db.isConnected()) return ProjectModel.find(query).populate('author').populate('endorsedBy').populate('assignedMembers').populate('comments.user').populate('supports.user').populate('sponsorships.user');
     return memoryDB.find('projects', query);
   },
   findOne: async (query) => {
-    if (db.isConnected()) return ProjectModel.findOne(query).populate('author').populate('endorsedBy').populate('assignedMembers').populate('comments.user');
+    if (db.isConnected()) return ProjectModel.findOne(query).populate('author').populate('endorsedBy').populate('assignedMembers').populate('comments.user').populate('supports.user').populate('sponsorships.user');
     return memoryDB.findOne('projects', query);
   },
   findById: async (id) => {
-    if (db.isConnected()) return ProjectModel.findById(id).populate('author').populate('endorsedBy').populate('assignedMembers').populate('comments.user');
+    if (db.isConnected()) return ProjectModel.findById(id).populate('author').populate('endorsedBy').populate('assignedMembers').populate('comments.user').populate('supports.user').populate('sponsorships.user');
     return memoryDB.findById('projects', id);
   },
   create: async (data) => {
     if (db.isConnected()) {
       const created = await ProjectModel.create(data);
-      return ProjectModel.findById(created._id).populate('author').populate('comments.user');
+      return ProjectModel.findById(created._id).populate('author').populate('comments.user').populate('supports.user').populate('sponsorships.user');
     }
     // Pre-populate author from memoryDB in fallback mode
     const User = require('./User');
     const authorUser = await User.findById(data.author);
-    const enrichedData = { ...data, author: authorUser, comments: [] };
+    const enrichedData = { ...data, author: authorUser, comments: [], supports: [], sponsorships: [] };
     return memoryDB.create('projects', enrichedData);
   },
   findByIdAndUpdate: async (id, data, options) => {
@@ -60,7 +71,9 @@ const Project = {
         .populate('author')
         .populate('endorsedBy')
         .populate('assignedMembers')
-        .populate('comments.user');
+        .populate('comments.user')
+        .populate('supports.user')
+        .populate('sponsorships.user');
     }
     return memoryDB.findByIdAndUpdate('projects', id, data);
   },

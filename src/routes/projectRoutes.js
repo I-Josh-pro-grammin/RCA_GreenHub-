@@ -11,7 +11,8 @@ const {
   updateProject,
   deleteProject,
   addComment,
-  supportProject
+  supportProject,
+  sponsorProject
 } = require('../controllers/projectController');
 const protect = require('../middleware/authMiddleware');
 
@@ -26,5 +27,6 @@ router.post('/:id/ready', protect, markProjectReady);
 router.post('/:id/feature', protect, featureProject);
 router.post('/:id/comments', protect, addComment);
 router.post('/:id/support', protect, supportProject);
+router.post('/:id/sponsor', protect, sponsorProject);
 
 module.exports = router;
