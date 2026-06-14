@@ -1,0 +1,1163 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "RCA GreenHub API Service",
+    "description": "Comprehensive API documentation for the RCA GreenHub backend, supporting project discovery, environmental actions, budget tracking, user profiles, announcements, and support coordination.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:4000/api",
+      "description": "Local Development Server"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Enter your JWT token in the format: Bearer <token>"
+      }
+    },
+    "schemas": {
+      "User": {
+        "type": "object",
+        "properties": {
+          "_id": { "type": "string", "example": "60d0fe4f5311236168a109ca" },
+          "id": { "type": "string", "example": "60d0fe4f5311236168a109ca" },
+          "name": { "type": "string", "example": "Keza Alice" },
+          "email": { "type": "string", "format": "email", "example": "keza@rca.ac.rw" },
+          "role": { "type": "string", "example": "Student" },
+          "avatar": { "type": "string", "example": "KA" },
+          "gipPoints": { "type": "integer", "example": 120 },
+          "profileCompleteness": { "type": "integer", "example": 85 },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Project": {
+        "type": "object",
+        "properties": {
+          "_id": { "type": "string", "example": "60d0fe4f5311236168a109cb" },
+          "title": { "type": "string", "example": "Smart Greenhouse Monitor" },
+          "description": { "type": "string", "example": "IoT-based system to monitor soil moisture and temperature in the RCA garden." },
+          "category": { "type": "string", "example": "Embedded / IoT Project" },
+          "department": { "type": "string", "example": "Embedded Systems" },
+          "stage": { "type": "string", "example": "Prototype" },
+          "targetArea": { "type": "string", "example": "RCA Campus" },
+          "githubLink": { "type": "string", "example": "https://github.com/rca/greenhouse" },
+          "liveDemo": { "type": "string", "example": "https://greenhouse.rca.ac.rw" },
+          "supportNeeded": { "type": "array", "items": { "type": "string" }, "example": ["Sensors", "Hardware casing"] },
+          "points": { "type": "integer", "example": 50 },
+          "status": { "type": "string", "example": "Approved" },
+          "author": { "$ref": "#/components/schemas/User" },
+          "isEndorsed": { "type": "boolean", "example": true },
+          "endorsedBy": { "type": "string", "example": "60d0fe4f5311236168a109cc" },
+          "isRecommendedForSupport": { "type": "boolean", "example": false },
+          "isRecommendedForInvestors": { "type": "boolean", "example": false },
+          "isFeatured": { "type": "boolean", "example": false },
+          "assignedMembers": { "type": "array", "items": { "$ref": "#/components/schemas/User" } },
+          "comments": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "user": { "$ref": "#/components/schemas/User" },
+                "content": { "type": "string", "example": "Awesome initiative!" },
+                "createdAt": { "type": "string", "format": "date-time" }
+              }
+            }
+          },
+          "supports": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "user": { "$ref": "#/components/schemas/User" },
+                "message": { "type": "string", "example": "I'd like to collaborate on the casing design." },
+                "createdAt": { "type": "string", "format": "date-time" }
+              }
+            }
+          },
+          "sponsorships": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "user": { "$ref": "#/components/schemas/User" },
+                "message": { "type": "string", "example": "Sponsoring RWF 100,000 for components." },
+                "amount": { "type": "integer", "example": 100000 },
+                "createdAt": { "type": "string", "format": "date-time" }
+              }
+            }
+          },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "BudgetRequest": {
+        "type": "object",
+        "properties": {
+          "_id": { "type": "string", "example": "60d0fe4f5311236168a109cd" },
+          "project": { "$ref": "#/components/schemas/Project" },
+          "requestedBy": { "$ref": "#/components/schemas/User" },
+          "amount": { "type": "integer", "example": 50000 },
+          "reason": { "type": "string", "example": "Buying Arduino Uno and DHT22 sensors." },
+          "status": { "type": "string", "example": "Pending" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "SupportRequest": {
+        "type": "object",
+        "properties": {
+          "_id": { "type": "string", "example": "60d0fe4f5311236168a109ce" },
+          "project": { "$ref": "#/components/schemas/Project" },
+          "requester": { "$ref": "#/components/schemas/User" },
+          "department": { "type": "string", "example": "Embedded Systems" },
+          "message": { "type": "string", "example": "Need hardware lab assistance for calibration." },
+          "status": { "type": "string", "example": "Pending" },
+          "assignedTo": { "type": "array", "items": { "$ref": "#/components/schemas/User" } },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Announcement": {
+        "type": "object",
+        "properties": {
+          "_id": { "type": "string", "example": "60d0fe4f5311236168a109cf" },
+          "title": { "type": "string", "example": "GreenHub Innovation Challenge 2026" },
+          "content": { "type": "string", "example": "RCA presents the environment challenge. Win up to +200 GIP!" },
+          "author": { "$ref": "#/components/schemas/User" },
+          "visibility": { "type": "string", "example": "Internal" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Notification": {
+        "type": "object",
+        "properties": {
+          "_id": { "type": "string", "example": "60d0fe4f5311236168a109d0" },
+          "user": { "type": "string", "example": "60d0fe4f5311236168a109ca" },
+          "title": { "type": "string", "example": "Points Earned! 🏆" },
+          "message": { "type": "string", "example": "You earned +15 GIP for offering support." },
+          "read": { "type": "boolean", "example": false },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/auth/register": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Register a new user",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "email", "password", "role"],
+                "properties": {
+                  "name": { "type": "string", "example": "Keza Alice" },
+                  "email": { "type": "string", "format": "email", "example": "keza@rca.ac.rw" },
+                  "password": { "type": "string", "format": "password", "example": "securepass123" },
+                  "role": { "type": "string", "enum": ["Student", "Teacher", "Department Head", "Finance Officer", "Secretary", "Head of All Departments", "Investor / Partner"], "example": "Student" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User registered successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "token": { "type": "string", "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." },
+                    "user": { "$ref": "#/components/schemas/User" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Missing credentials or user already exists" },
+          "500": { "description": "Server error during registration" }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Authenticate a user",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                  "email": { "type": "string", "format": "email", "example": "keza@rca.ac.rw" },
+                  "password": { "type": "string", "format": "password", "example": "securepass123" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Authentication successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "token": { "type": "string", "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." },
+                    "user": { "$ref": "#/components/schemas/User" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Please provide email and password" },
+          "401": { "description": "Invalid email or password" },
+          "500": { "description": "Server error during login" }
+        }
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "tags": ["Authentication"],
+        "summary": "Get current logged-in user profile details",
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Details of the logged-in user",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/User" }
+              }
+            }
+          },
+          "401": { "description": "Not authorized, token invalid or missing" },
+          "404": { "description": "User not found" },
+          "500": { "description": "Server error fetching user details" }
+        }
+      }
+    },
+    "/auth/profile": {
+      "put": {
+        "tags": ["Authentication"],
+        "summary": "Update user profile",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string", "example": "Keza Alice Updated" },
+                  "email": { "type": "string", "format": "email", "example": "keza.updated@rca.ac.rw" },
+                  "password": { "type": "string", "format": "password", "example": "newsecurepass123" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Profile updated successfully",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/User" }
+              }
+            }
+          },
+          "401": { "description": "Not authorized" },
+          "404": { "description": "User not found" },
+          "500": { "description": "Server error updating profile" }
+        }
+      }
+    },
+    "/projects": {
+      "get": {
+        "tags": ["Projects"],
+        "summary": "Get all projects",
+        "parameters": [
+          { "name": "category", "in": "query", "schema": { "type": "string" }, "description": "Filter by project category" },
+          { "name": "department", "in": "query", "schema": { "type": "string" }, "description": "Filter by department" },
+          { "name": "status", "in": "query", "schema": { "type": "string" }, "description": "Filter by status" },
+          { "name": "author", "in": "query", "schema": { "type": "string" }, "description": "Filter by author user ID" },
+          { "name": "stage", "in": "query", "schema": { "type": "string" }, "description": "Filter by project stage" },
+          { "name": "isEndorsed", "in": "query", "schema": { "type": "string", "enum": ["true", "false"] }, "description": "Filter by endorsed status" },
+          { "name": "isFeatured", "in": "query", "schema": { "type": "string", "enum": ["true", "false"] }, "description": "Filter by featured status" },
+          { "name": "isRecommendedForSupport", "in": "query", "schema": { "type": "string", "enum": ["true", "false"] }, "description": "Filter by support recommendations" },
+          { "name": "isRecommendedForInvestors", "in": "query", "schema": { "type": "string", "enum": ["true", "false"] }, "description": "Filter by investor recommendations" }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of projects matching the criteria",
+            "content": {
+              "application/json": {
+                "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Project" } }
+              }
+            }
+          },
+          "500": { "description": "Server error fetching projects" }
+        }
+      },
+      "post": {
+        "tags": ["Projects"],
+        "summary": "Create a new project",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["title", "category", "department"],
+                "properties": {
+                  "title": { "type": "string", "example": "Smart Greenhouse Monitor" },
+                  "description": { "type": "string", "example": "IoT-based system to monitor soil moisture and temperature in the RCA garden." },
+                  "category": { "type": "string", "example": "Embedded / IoT Project" },
+                  "department": { "type": "string", "example": "Embedded Systems" },
+                  "stage": { "type": "string", "default": "Idea", "example": "Idea" },
+                  "targetArea": { "type": "string", "default": "RCA Campus", "example": "RCA Campus" },
+                  "githubLink": { "type": "string", "example": "https://github.com/rca/greenhouse" },
+                  "liveDemo": { "type": "string", "example": "https://greenhouse.rca.ac.rw" },
+                  "supportNeeded": { "type": "array", "items": { "type": "string" }, "example": ["Sensors", "Hardware casing"] }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Project created successfully",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Project" }
+              }
+            }
+          },
+          "400": { "description": "Missing title, category, or department" },
+          "401": { "description": "Not authorized" },
+          "500": { "description": "Server error creating project" }
+        }
+      }
+    },
+    "/projects/{id}": {
+      "get": {
+        "tags": ["Projects"],
+        "summary": "Get a project by ID",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "Project ID" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Project details",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Project" }
+              }
+            }
+          },
+          "404": { "description": "Project not found" },
+          "500": { "description": "Server error fetching project details" }
+        }
+      },
+      "put": {
+        "tags": ["Projects"],
+        "summary": "Update a project",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "Project ID" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": { "type": "string", "example": "Smart Greenhouse Monitor" },
+                  "description": { "type": "string", "example": "IoT-based system to monitor soil moisture and temperature in the RCA garden." },
+                  "category": { "type": "string", "example": "Embedded / IoT Project" },
+                  "department": { "type": "string", "example": "Embedded Systems" },
+                  "stage": { "type": "string", "example": "Prototype" },
+                  "targetArea": { "type": "string", "example": "RCA Campus" },
+                  "githubLink": { "type": "string", "example": "https://github.com/rca/greenhouse" },
+                  "liveDemo": { "type": "string", "example": "https://greenhouse.rca.ac.rw" },
+                  "supportNeeded": { "type": "array", "items": { "type": "string" } }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Project updated successfully",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Project" }
+              }
+            }
+          },
+          "401": { "description": "Not authorized" },
+          "403": { "description": "Not authorized to edit this project (must be the author)" },
+          "404": { "description": "Project not found" },
+          "500": { "description": "Server error updating project" }
+        }
+      },
+      "delete": {
+        "tags": ["Projects"],
+        "summary": "Delete a project",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "Project ID" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Project deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string", "example": "Project deleted successfully" }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Not authorized" },
+          "403": { "description": "Not authorized to delete this project (must be the author)" },
+          "404": { "description": "Project not found" },
+          "500": { "description": "Server error deleting project" }
+        }
+      }
+    },
+    "/projects/{id}/endorse": {
+      "post": {
+        "tags": ["Projects"],
+        "summary": "Endorse a project (Teacher only)",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "Project ID" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Project endorsed successfully",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Project" }
+              }
+            }
+          },
+          "400": { "description": "Project already endorsed" },
+          "401": { "description": "Not authorized" },
+          "404": { "description": "Project not found" },
+          "500": { "description": "Server error endorsing project" }
+        }
+      }
+    },
+    "/projects/{id}/recommend": {
+      "post": {
+        "tags": ["Projects"],
+        "summary": "Recommend a project for support or investors (Teacher / Head of Department only)",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "Project ID" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["type"],
+                "properties": {
+                  "type": { "type": "string", "enum": ["support", "investor"], "example": "support" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Project recommended successfully",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Project" }
+              }
+            }
+          },
+          "400": { "description": "Invalid recommendation type or project already recommended" },
+          "401": { "description": "Not authorized" },
+          "404": { "description": "Project not found" },
+          "500": { "description": "Server error recommending project" }
+        }
+      }
+    },
+    "/projects/{id}/ready": {
+      "post": {
+        "tags": ["Projects"],
+        "summary": "Mark prototype ready (Department Head only)",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "Project ID" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Project marked prototype-ready successfully",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Project" }
+              }
+            }
+          },
+          "401": { "description": "Not authorized" },
+          "404": { "description": "Project not found" },
+          "500": { "description": "Server error marking project ready" }
+        }
+      }
+    },
+    "/projects/{id}/feature": {
+      "post": {
+        "tags": ["Projects"],
+        "summary": "Feature project on home page (Head of All Departments only)",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "Project ID" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Project featured successfully",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Project" }
+              }
+            }
+          },
+          "400": { "description": "Project already featured" },
+          "401": { "description": "Not authorized" },
+          "404": { "description": "Project not found" },
+          "500": { "description": "Server error featuring project" }
+        }
+      }
+    },
+    "/projects/{id}/comments": {
+      "post": {
+        "tags": ["Projects"],
+        "summary": "Add a comment to a project",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "Project ID" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["content"],
+                "properties": {
+                  "content": { "type": "string", "example": "This is a great idea!" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Comment added successfully",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Project" }
+              }
+            }
+          },
+          "400": { "description": "Comment content missing or author trying to comment on their own project" },
+          "401": { "description": "Not authorized" },
+          "404": { "description": "Project not found" },
+          "500": { "description": "Server error adding comment" }
+        }
+      }
+    },
+    "/projects/{id}/support": {
+      "post": {
+        "tags": ["Projects"],
+        "summary": "Offer support to a project",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "Project ID" }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "message": { "type": "string", "example": "I can help write the documentation." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Support offered successfully",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Project" }
+              }
+            }
+          },
+          "401": { "description": "Not authorized" },
+          "404": { "description": "Project not found" },
+          "500": { "description": "Server error offering support" }
+        }
+      }
+    },
+    "/projects/{id}/sponsor": {
+      "post": {
+        "tags": ["Projects"],
+        "summary": "Sponsor a project (Investor / Partner only)",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "Project ID" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["amount"],
+                "properties": {
+                  "message": { "type": "string", "example": "Looking forward to working together." },
+                  "amount": { "type": "integer", "example": 250000 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Project sponsored successfully",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Project" }
+              }
+            }
+          },
+          "401": { "description": "Not authorized" },
+          "404": { "description": "Project not found" },
+          "500": { "description": "Server error sponsoring project" }
+        }
+      }
+    },
+    "/budgets": {
+      "get": {
+        "tags": ["Budgets"],
+        "summary": "Get all budget requests",
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "List of budget requests",
+            "content": {
+              "application/json": {
+                "schema": { "type": "array", "items": { "$ref": "#/components/schemas/BudgetRequest" } }
+              }
+            }
+          },
+          "401": { "description": "Not authorized" },
+          "500": { "description": "Server error fetching budget requests" }
+        }
+      },
+      "post": {
+        "tags": ["Budgets"],
+        "summary": "Create a new budget request",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["amount", "reason"],
+                "properties": {
+                  "project": { "type": "string", "example": "60d0fe4f5311236168a109cb" },
+                  "amount": { "type": "integer", "example": 150000 },
+                  "reason": { "type": "string", "example": "Purchasing solar panels and smart battery pack." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Budget request created successfully",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/BudgetRequest" }
+              }
+            }
+          },
+          "400": { "description": "Amount and reason are required" },
+          "401": { "description": "Not authorized" },
+          "500": { "description": "Server error creating budget request" }
+        }
+      }
+    },
+    "/budgets/{id}/approve": {
+      "post": {
+        "tags": ["Budgets"],
+        "summary": "Approve a budget request (Finance Officer only)",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "Budget Request ID" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Budget request approved successfully",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/BudgetRequest" }
+              }
+            }
+          },
+          "400": { "description": "Budget request is already approved/rejected" },
+          "401": { "description": "Not authorized" },
+          "404": { "description": "Budget request not found" },
+          "500": { "description": "Server error approving budget request" }
+        }
+      }
+    },
+    "/budgets/{id}/reject": {
+      "post": {
+        "tags": ["Budgets"],
+        "summary": "Reject a budget request (Finance Officer only)",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "Budget Request ID" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Budget request rejected successfully",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/BudgetRequest" }
+              }
+            }
+          },
+          "400": { "description": "Budget request is already approved/rejected" },
+          "401": { "description": "Not authorized" },
+          "404": { "description": "Budget request not found" },
+          "500": { "description": "Server error rejecting budget request" }
+        }
+      }
+    },
+    "/support": {
+      "get": {
+        "tags": ["Support Requests"],
+        "summary": "Get all support requests",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          { "name": "department", "in": "query", "schema": { "type": "string" }, "description": "Filter by department name" },
+          { "name": "status", "in": "query", "schema": { "type": "string" }, "description": "Filter by status (e.g. Pending, Assigned, Accepted)" },
+          { "name": "requester", "in": "query", "schema": { "type": "string" }, "description": "Filter by requester user ID" },
+          { "name": "project", "in": "query", "schema": { "type": "string" }, "description": "Filter by project ID" }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of support requests",
+            "content": {
+              "application/json": {
+                "schema": { "type": "array", "items": { "$ref": "#/components/schemas/SupportRequest" } }
+              }
+            }
+          },
+          "401": { "description": "Not authorized" },
+          "500": { "description": "Server error fetching support requests" }
+        }
+      },
+      "post": {
+        "tags": ["Support Requests"],
+        "summary": "Create a new support request",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["project", "department", "message"],
+                "properties": {
+                  "project": { "type": "string", "example": "60d0fe4f5311236168a109cb" },
+                  "department": { "type": "string", "example": "Embedded Systems" },
+                  "message": { "type": "string", "example": "Need hardware lab assistance for calibration." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Support request created successfully",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SupportRequest" }
+              }
+            }
+          },
+          "400": { "description": "Missing project, department, or message" },
+          "401": { "description": "Not authorized" },
+          "500": { "description": "Server error creating support request" }
+        }
+      }
+    },
+    "/support/{id}/assign": {
+      "post": {
+        "tags": ["Support Requests"],
+        "summary": "Assign support members to request (Department Head only)",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "Support Request ID" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["assignedTo"],
+                "properties": {
+                  "assignedTo": { "type": "array", "items": { "type": "string" }, "example": ["60d0fe4f5311236168a109ca"] }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Support request assigned successfully",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SupportRequest" }
+              }
+            }
+          },
+          "400": { "description": "Invalid array of assigned members" },
+          "401": { "description": "Not authorized" },
+          "404": { "description": "Support request not found" },
+          "500": { "description": "Server error assigning support request" }
+        }
+      }
+    },
+    "/support/{id}/accept": {
+      "post": {
+        "tags": ["Support Requests"],
+        "summary": "Accept support request",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "Support Request ID" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Support request accepted successfully",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SupportRequest" }
+              }
+            }
+          },
+          "401": { "description": "Not authorized" },
+          "404": { "description": "Support request not found" },
+          "500": { "description": "Server error accepting support request" }
+        }
+      }
+    },
+    "/announcements": {
+      "get": {
+        "tags": ["Announcements"],
+        "summary": "Get all announcements",
+        "parameters": [
+          { "name": "visibility", "in": "query", "schema": { "type": "string", "enum": ["Internal", "Public"] }, "description": "Filter by visibility level" }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of announcements",
+            "content": {
+              "application/json": {
+                "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Announcement" } }
+              }
+            }
+          },
+          "500": { "description": "Server error fetching announcements" }
+        }
+      },
+      "post": {
+        "tags": ["Announcements"],
+        "summary": "Create a new announcement (Secretary only)",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["title", "content"],
+                "properties": {
+                  "title": { "type": "string", "example": "Next Campus Clean-up Day" },
+                  "content": { "type": "string", "example": "Join us next Saturday for planting trees around the dormitories." },
+                  "visibility": { "type": "string", "default": "Internal", "example": "Internal" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Announcement created successfully",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Announcement" }
+              }
+            }
+          },
+          "400": { "description": "Missing title or content" },
+          "401": { "description": "Not authorized" },
+          "500": { "description": "Server error creating announcement" }
+        }
+      }
+    },
+    "/analytics/overall": {
+      "get": {
+        "tags": ["Analytics"],
+        "summary": "Get overall dashboard analytics for GreenHub landing page",
+        "responses": {
+          "200": {
+            "description": "Aggregated public counts and trends",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "totalProjects": { "type": "integer", "example": 24 },
+                    "totalGIP": { "type": "integer", "example": 3420 },
+                    "recentGipLogs": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "label": { "type": "string", "example": "Teacher endorsement" },
+                          "value": { "type": "string", "example": "+35 pts" },
+                          "meta": { "type": "string", "example": "Keza Alice" }
+                        }
+                      }
+                    },
+                    "topProjects": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "title": { "type": "string", "example": "Smart Greenhouse Monitor" },
+                          "value": { "type": "string", "example": "50 pts" },
+                          "meta": { "type": "string", "example": "Embedded / IoT Project" }
+                        }
+                      }
+                    },
+                    "categoryCounts": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "category": { "type": "string", "example": "Embedded / IoT Project" },
+                          "count": { "type": "integer", "example": 8 }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": { "description": "Server error computing analytics" }
+        }
+      }
+    },
+    "/analytics/portal": {
+      "get": {
+        "tags": ["Analytics"],
+        "summary": "Get role-specific dashboard metrics and GIP leaderboard",
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "User portal dashboard statistics",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "stats": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "label": { "type": "string", "example": "My Projects" },
+                          "value": { "type": "number", "example": 2 }
+                        }
+                      }
+                    },
+                    "leaderboard": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "userId": { "type": "string", "example": "60d0fe4f5311236168a109ca" },
+                          "name": { "type": "string", "example": "Keza Alice" },
+                          "points": { "type": "number", "example": 190 }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Not authorized" },
+          "500": { "description": "Server error computing metrics" }
+        }
+      }
+    },
+    "/search": {
+      "get": {
+        "tags": ["Search"],
+        "summary": "Global search across projects, support requests, and announcements",
+        "parameters": [
+          { "name": "q", "in": "query", "required": false, "schema": { "type": "string" }, "description": "Search keyword query string" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Search results structured by resource type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "projects": { "type": "array", "items": { "$ref": "#/components/schemas/Project" } },
+                    "supportRequests": { "type": "array", "items": { "$ref": "#/components/schemas/SupportRequest" } },
+                    "announcements": { "type": "array", "items": { "$ref": "#/components/schemas/Announcement" } }
+                  }
+                }
+              }
+            }
+          },
+          "500": { "description": "Server error processing search" }
+        }
+      }
+    },
+    "/upload": {
+      "post": {
+        "tags": ["Uploads"],
+        "summary": "Mock image upload endpoint",
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Image mock upload successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string", "example": "Image uploaded successfully (mock)" },
+                    "url": { "type": "string", "example": "https://images.unsplash.com/photo-1530587191325-3db32d826c18?auto=format&fit=crop&w=800&q=80" }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Not authorized" }
+        }
+      }
+    },
+    "/notifications": {
+      "get": {
+        "tags": ["Notifications"],
+        "summary": "Get all notifications for logged-in user",
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "List of user notifications",
+            "content": {
+              "application/json": {
+                "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Notification" } }
+              }
+            }
+          },
+          "401": { "description": "Not authorized" },
+          "500": { "description": "Server error fetching notifications" }
+        }
+      }
+    },
+    "/notifications/read-all": {
+      "put": {
+        "tags": ["Notifications"],
+        "summary": "Mark all logged-in user's notifications as read",
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "All notifications marked as read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string", "example": "All notifications marked as read" },
+                    "count": { "type": "integer", "example": 5 }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Not authorized" },
+          "500": { "description": "Server error marking notifications read" }
+        }
+      }
+    },
+    "/notifications/{id}/read": {
+      "put": {
+        "tags": ["Notifications"],
+        "summary": "Mark specific notification as read",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "description": "Notification ID" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Notification marked as read successfully",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Notification" }
+              }
+            }
+          },
+          "401": { "description": "Not authorized" },
+          "403": { "description": "Not authorized to update this notification" },
+          "404": { "description": "Notification not found" },
+          "500": { "description": "Server error updating notification status" }
+        }
+      }
+    }
+  }
+}

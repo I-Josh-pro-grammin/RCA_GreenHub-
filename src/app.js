@@ -42,9 +42,17 @@ app.use('/api/search', searchRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/notifications', notificationRoutes);
 
+// Swagger API documentation route
+const swaggerUi = require('swagger-ui-express');
+const swaggerDocument = require('./swagger.json');
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+
 // Root route
 app.get('/', (req, res) => {
-  res.json({ message: 'RCA GreenHub API Service is running!' });
+  res.json({ 
+    message: 'RCA GreenHub API Service is running!',
+    documentation: '/api-docs'
+  });
 });
 
 // Error handling middleware
